@@ -20,6 +20,7 @@ app.config['SESSION_FILE_DIR'] = './.flask_session/'
 try:
     client = groq.Groq(api_key=os.getenv("GROQ_API_KEY"))
     GROQ_AVAILABLE = True
+    print("✅ Groq client initialized successfully")
 except Exception as e:
     GROQ_AVAILABLE = False
     print(f"⚠️  Groq API key no configurada: {e}")
@@ -164,13 +165,23 @@ def health():
     return jsonify({
         "status": "cyber_ready", 
         "ai": groq_status,
-        "environment": os.getenv("FLASK_ENV", "production")
+        "environment": os.getenv("FLASK_ENV", "production"),
+        "debug_info": {
+            "templates_path": os.path.exists('templates'),
+            "static_path": os.path.exists('static'),
+            "template_files": os.listdir('templates') if os.path.exists('templates') else []
+        }
     })
+
+# Ruta de prueba para verificar que Flask funciona
+@app.route('/test')
+def test():
+    return jsonify({"message": "Flask is working!", "status": "success"})
 
 # Manejo de errores
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({"error": "Endpoint no encontrado"}), 404
+    return jsonify({"error": "Endpoint no encontrado", "available_routes": ["/", "/chat", "/new_chat", "/health", "/test"]}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -179,4 +190,11 @@ def internal_error(error):
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    print(f"🚀 Starting CyberCode AI on port {port}")
+    print(f"📁 Current directory: {os.getcwd()}")
+    print(f"📁 Files in directory: {os.listdir('.')}")
+    if os.path.exists('templates'):
+        print(f"📁 Templates files: {os.listdir('templates')}")
+    if os.path.exists('static'):
+        print(f"📁 Static files: {os.listdir('static')}")
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
