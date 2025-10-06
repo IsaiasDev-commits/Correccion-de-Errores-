@@ -20,9 +20,9 @@ app.config['SESSION_FILE_DIR'] = './.flask_session/'
 try:
     client = groq.Groq(api_key=os.getenv("GROQ_API_KEY"))
     GROQ_AVAILABLE = True
-except:
+except Exception as e:
     GROQ_AVAILABLE = False
-    print("⚠️  Groq API key no configurada")
+    print(f"⚠️  Groq API key no configurada: {e}")
 
 class CodeChatAssistant:
     def __init__(self):
@@ -49,7 +49,7 @@ class CodeChatAssistant:
             if not GROQ_AVAILABLE:
                 return {
                     "success": False,
-                    "error": "Servicio AI no configurado. Por favor, configura GROQ_API_KEY en Render."
+                    "error": "Servicio AI no configurado. Por favor, configura GROQ_API_KEY en las variables de entorno de Render."
                 }
             
             system_prompt = """Eres CyberCode AI, un asistente de programación futurista y experto. 
@@ -87,8 +87,9 @@ function ejemplo() {
             # Agregar mensaje actual
             messages.append({"role": "user", "content": user_message})
             
+            # Usar un modelo disponible en Groq
             response = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model="llama3-8b-8192",  # Modelo disponible en Groq
                 messages=messages,
                 temperature=0.7,
                 max_tokens=2000,
