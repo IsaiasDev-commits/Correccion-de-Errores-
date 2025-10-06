@@ -57,12 +57,93 @@ except Exception as e:
     GROQ_AVAILABLE = False
     app.logger.error(f"⚠️ Groq API key no configurada: {e}")
 
+class SistemaAprendizaje:
+    def __init__(self):
+        self.respuestas_efectivas = {}  
+        self.patrones_conversacion = {}  
+        self.archivo_aprendizaje = "datos/aprendizaje.json"
+        self.lock = threading.Lock()  
+        self.cargar_aprendizaje()
+    
+    def cargar_aprendizaje(self):
+        try:
+            with self.lock:
+                if os.path.exists(self.archivo_aprendizaje):
+                    with open(self.archivo_aprendizaje, 'r', encoding='utf-8') as f:
+                        datos = json.load(f)
+                        self.respuestas_efectivas = datos.get('respuestas_efectivas', {})
+                        self.patrones_conversacion = datos.get('patrones_conversacion', {})
+        except Exception as e:
+            app.logger.error(f"Error cargando aprendizaje: {e}")
+    
+    def guardar_aprendizaje(self):
+        try:
+            with self.lock:
+                os.makedirs(os.path.dirname(self.archivo_aprendizaje), exist_ok=True)
+                with open(self.archivo_aprendizaje, 'w', encoding='utf-8') as f:
+                    json.dump({
+                        'respuestas_efectivas': self.respuestas_efectivas,
+                        'patrones_conversacion': self.patrones_conversacion
+                    }, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            app.logger.error(f"Error guardando aprendizaje: {e}")
+    
+    def evaluar_respuesta(self, lenguaje, respuesta_usuario, respuesta_bot, engagement):
+        if not isinstance(lenguaje, str) or not lenguaje.strip():
+            return
+            
+        if not isinstance(respuesta_bot, str) or not respuesta_bot.strip():
+            return
+            
+        efectividad = min(10, max(1, engagement))
+        
+        if lenguaje not in self.respuestas_efectivas:
+            self.respuestas_efectivas[lenguaje] = {}
+        
+        if respuesta_bot not in self.respuestas_efectivas[lenguaje]:
+            self.respuestas_efectivas[lenguaje][respuesta_bot] = {
+                'efectividad_total': 0,
+                'veces_usada': 0,
+                'ultimo_uso': datetime.now().isoformat()
+            }
+        
+        self.respuestas_efectivas[lenguaje][respuesta_bot]['efectividad_total'] += efectividad
+        self.respuestas_efectivas[lenguaje][respuesta_bot]['veces_usada'] += 1
+        self.respuestas_efectivas[lenguaje][respuesta_bot]['ultimo_uso'] = datetime.now().isoformat()
+        
+        self.guardar_aprendizaje()
+    
+    def obtener_mejor_respuesta(self, lenguaje, contexto):
+        if lenguaje in self.respuestas_efectivas and self.respuestas_efectivas[lenguaje]:
+            respuestas_ordenadas = sorted(
+                self.respuestas_efectivas[lenguaje].items(),
+                key=lambda x: x[1]['efectividad_total'] / x[1]['veces_usada'] if x[1]['veces_usada'] > 0 else 0,
+                reverse=True
+            )
+            
+            for respuesta, stats in respuestas_ordenadas[:3]: 
+                ultimo_uso = datetime.fromisoformat(stats['ultimo_uso'])
+                if (datetime.now() - ultimo_uso).total_seconds() > 3600:
+                    return respuesta
+        
+        return None
+
+# Lenguajes de programación disponibles
+lenguajes_disponibles = [
+    "Python", "JavaScript", "Java", "C++", "C#", "PHP", "Ruby", "Go", "Rust",
+    "TypeScript", "Swift", "Kotlin", "HTML/CSS", "React", "Vue.js", "Angular",
+    "Node.js", "Express.js", "Django", "Flask", "Spring Boot", "Laravel",
+    "SQL", "MongoDB", "PostgreSQL", "MySQL", "Firebase", "AWS", "Docker", "Kubernetes"
+]
+
 class CodeChatAssistant:
     def __init__(self):
         self.history = []
         self.session_id = str(uuid.uuid4())
         self.contador_interacciones = 0
         self.max_historial = 20
+        self.sistema_aprendizaje = SistemaAprendizaje()
+        self.lenguaje_actual = None
     
     def add_message(self, role, content, code_snippet=None):
         message = {
@@ -85,7 +166,8 @@ class CodeChatAssistant:
         return {
             'history': self.history,
             'session_id': self.session_id,
-            'contador_interacciones': self.contador_interacciones
+            'contador_interacciones': self.contador_interacciones,
+            'lenguaje_actual': self.lenguaje_actual
         }
     
     @classmethod
@@ -94,7 +176,27 @@ class CodeChatAssistant:
         instance.history = data.get('history', [])
         instance.session_id = data.get('session_id', str(uuid.uuid4()))
         instance.contador_interacciones = data.get('contador_interacciones', 0)
+        instance.lenguaje_actual = data.get('lenguaje_actual', None)
         return instance
+    
+    def detectar_lenguaje(self, user_message):
+        """Detecta el lenguaje de programación del mensaje del usuario"""
+        lenguajes_keywords = {
+            "Python": ["python", "def ", "import ", "print(", "numpy", "pandas"],
+            "JavaScript": ["javascript", "js", "function()", "console.log", "react", "vue", "angular"],
+            "Java": ["java", "public class", "System.out", "spring"],
+            "HTML/CSS": ["html", "css", "<div>", "class=", "style="],
+            "React": ["react", "useState", "component", "jsx"],
+            "Node.js": ["node", "express", "require(", "npm"],
+            "SQL": ["sql", "select", "insert", "update", "delete", "where"],
+        }
+        
+        user_message_lower = user_message.lower()
+        for lenguaje, keywords in lenguajes_keywords.items():
+            for keyword in keywords:
+                if keyword in user_message_lower:
+                    return lenguaje
+        return "General"
     
     def analyze_with_ai(self, user_message):
         try:
@@ -104,24 +206,36 @@ class CodeChatAssistant:
                     "error": "Servicio AI no configurado. Por favor, configura GROQ_API_KEY en Render."
                 }
             
-            system_prompt = """Eres CyberCode AI, un asistente de programación futurista y experto. 
+            # Detectar lenguaje automáticamente
+            lenguaje_detectado = self.detectar_lenguaje(user_message)
+            self.lenguaje_actual = lenguaje_detectado
+
+            system_prompt = f"""Eres CyberCode AI, un asistente de programación futurista y experto. 
+
+ESPECIALIDAD EN: {lenguaje_detectado.upper() if lenguaje_detectado != "General" else "TODOS LOS LENGUAJES"}
 
 CARACTERÍSTICAS:
-🎯 ANALIZA código en JavaScript, Python, HTML, CSS, React, etc.
-🔍 DETECTA errores, sugiere optimizaciones y mejores prácticas
-💡 EXPLICA conceptos de manera clara y didáctica
+🎯 ANALIZA código y detecta errores
+🔍 SUGIERE optimizaciones y mejores prácticas
+💡 EXPLICA conceptos de programación claramente
 🚀 PROPORCIONA ejemplos prácticos y código corregido
 🤖 MANTÉN un tono profesional pero amigable
 
-RESPONDE en formato Markdown cuando sea útil para código.
+INSTRUCCIONES ESPECÍFICAS:
+1. Responde en formato Markdown cuando muestres código
+2. Usa bloques de código con sintaxis highlighting
+3. Sé específico y técnicamente preciso
+4. Explica el "por qué" detrás de las correcciones
+5. Ofrece alternativas cuando sea relevante
+6. Mantén las respuestas concisas pero completas
 
-EJEMPLOS DE RESPUESTA:
-```javascript
-// Código corregido
-function ejemplo() {
-    console.log('Hola mundo');
-}
-💡 Consejo: Siempre declara variables con let/const...
+EJEMPLO DE RESPUESTA:
+```{lenguaje_detectado.lower() if lenguaje_detectado != "General" else "python"}
+// Código optimizado
+function ejemploMejorado() {{
+    console.log('Hola mundo optimizado');
+}}
+💡 Explicación: Aquí se mejoró [explicación técnica]...
 
 ¿Necesitas más ayuda con algún concepto específico?"""
 
@@ -139,8 +253,8 @@ function ejemplo() {
             # Agregar mensaje actual
             messages.append({"role": "user", "content": user_message})
             
-            # Usar modelos disponibles en Groq
-            modelos = ["llama3-8b-8192", "llama3.1-8b-instant", "llama3.1-70b-versatile"]
+            # Usar modelos de Groq
+            modelos = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
             response = None
             
             for modelo in modelos:
@@ -152,24 +266,30 @@ function ejemplo() {
                         max_tokens=2000,
                         timeout=30
                     )
+                    app.logger.info(f"✅ Modelo {modelo} funcionando para {lenguaje_detectado}")
                     break
                 except Exception as e:
-                    app.logger.warning(f"Modelo {modelo} falló, probando siguiente: {e}")
+                    app.logger.warning(f"Modelo {modelo} falló: {e}")
                     continue
             
             if not response:
                 return {
                     "success": False,
-                    "error": "No se pudo conectar con el servicio AI"
+                    "error": "No se pudo conectar con ningún modelo AI"
                 }
             
             ai_response = response.choices[0].message.content
             self.add_message('assistant', ai_response)
             
+            # Aprender de esta interacción
+            engagement = min(10, len(user_message) / 10)
+            self.sistema_aprendizaje.evaluar_respuesta(lenguaje_detectado, user_message, ai_response, engagement)
+            
             return {
                 "success": True,
                 "response": ai_response,
                 "session_id": self.session_id,
+                "lenguaje": lenguaje_detectado,
                 "history_length": len(self.history),
                 "interacciones": self.contador_interacciones
             }
@@ -186,7 +306,7 @@ def index():
     # Inicializar nueva sesión de chat
     session.permanent = True
     if 'chat_session' not in session:
-        session['chat_session'] = CodeChatAssistant().__dict__
+        session['chat_session'] = CodeChatAssistant().to_dict()
     
     # Log de sesión para debug
     if 'RENDER' in os.environ:
@@ -198,16 +318,15 @@ def index():
 def chat():
     try:
         user_message = request.json.get('message', '').strip()
-
+        
         if not user_message:
             return jsonify({"success": False, "error": "El mensaje no puede estar vacío"})
         
         # Recuperar o crear sesión de chat
         if 'chat_session' not in session:
-            session['chat_session'] = CodeChatAssistant().__dict__
+            session['chat_session'] = CodeChatAssistant().to_dict()
         
-        chat_assistant = CodeChatAssistant()
-        chat_assistant.__dict__ = session['chat_session']
+        chat_assistant = CodeChatAssistant.from_dict(session['chat_session'])
         
         # Agregar mensaje del usuario
         chat_assistant.add_message('user', user_message)
@@ -216,11 +335,11 @@ def chat():
         result = chat_assistant.analyze_with_ai(user_message)
         
         # Guardar sesión actualizada
-        session['chat_session'] = chat_assistant.__dict__
+        session['chat_session'] = chat_assistant.to_dict()
         session.modified = True
         
         # Log de interacción
-        app.logger.info(f"💬 Chat interaction - Session: {chat_assistant.session_id}, Messages: {chat_assistant.contador_interacciones}")
+        app.logger.info(f"💬 Chat interaction - Lenguaje: {chat_assistant.lenguaje_actual}, Messages: {chat_assistant.contador_interacciones}")
         
         return jsonify(result)
         
@@ -232,7 +351,7 @@ def chat():
 def new_chat():
     try:
         # Reiniciar conversación
-        session['chat_session'] = CodeChatAssistant().__dict__
+        session['chat_session'] = CodeChatAssistant().to_dict()
         session.modified = True
         
         app.logger.info("🆕 Nueva conversación iniciada")
@@ -254,22 +373,17 @@ def serve_logo():
 def health():
     groq_status = "groq_connected" if GROQ_AVAILABLE else "groq_missing_key"
     return jsonify({
-        "status": "cyber_ready", 
+        "status": "cyber_ready",
         "ai": groq_status,
         "environment": os.getenv("FLASK_ENV", "production"),
         "render": 'RENDER' in os.environ,
-        "session_active": 'chat_session' in session,
-        "debug_info": {
-            "python_version": os.sys.version,
-            "current_directory": os.getcwd(),
-            "files_in_root": len(os.listdir('.')) if os.path.exists('.') else 0
-        }
+        "session_active": 'chat_session' in session
     })
 
 @app.route('/test')
 def test():
     return jsonify({
-        "message": "Flask is working!", 
+        "message": "Flask is working!",
         "status": "success",
         "timestamp": datetime.now().isoformat()
     })
@@ -298,12 +412,6 @@ if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_ENV') == 'development'
     
     app.logger.info(f"🚀 Starting CyberCode AI on port {port}")
-    app.logger.info(f"📁 Current directory: {os.getcwd()}")
-    
-    if os.path.exists('templates'):
-        app.logger.info(f"📁 Templates: {os.listdir('templates')}")
-    if os.path.exists('static'):
-        app.logger.info(f"📁 Static files: {os.listdir('static')}")
     
     # Para Render, usar gunicorn compatible
     if 'RENDER' in os.environ:
