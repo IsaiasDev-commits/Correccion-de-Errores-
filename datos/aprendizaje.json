@@ -1,0 +1,12 @@
+{
+  "respuestas_efectivas": {
+    "General": {
+      "**🤖 CYBERCODE AI - ASISTENTE GENERAL**\n\n**🔍 ANÁLISIS DEL CÓDIGO**\n\n```general\nAyudame con mi codigo\n``**🚀 RESPUESTA ESPECIALIZADA**\n¡Claro! Estoy aquí para ayudarte.  \n\nPara poder asistirte de la mejor manera, necesitaría un poco más de información:\n\n1. **¿En qué lenguaje de programación estás trabajando?** (por ejemplo, Python, JavaScript, Java, C++, etc.)  \n2. **¿Cuál es el objetivo de tu código?** (una función específica, una aplicación completa, un algoritmo, etc.)  \n3. **¿Qué parte del código te está dando problemas?**  \n   - Si tienes un mensaje de error, cópialo tal cual.  \n   - Si el comportamiento no es el esperado, describe qué ocurre y qué esperas que ocurra.  \n4. **¿Puedes compartir el fragmento de código relevante?**  \n   - Incluye las líneas que crees que están relacionadas con el problema.  \n   - Si el código es extenso, puedes pegar solo la función o el bloque que falla.\n\nCon esos datos podré diagnosticar el problema y proponerte una solución o mejoras concretas. ¡Espero tu respuesta!\n\n**📚 MEJORES PRÁCTICAS - GENERAL**\n• Escribe código limpio y legible\n• Usa nombres descriptivos\n• Comenta cuando sea necesario\n• Prueba tu código\n• Sigue las convenciones del lenguaje\n\n**¿Necesitas más ayuda?** \nPuedo:\n• 🔍 Analizar código más complejo\n• 💡 Explicar conceptos específicos\n• ⚡ Optimizar rendimiento\n• 🐛 Debuggear errores\n• 📚 Mostrar ejemplos avanzados\n\n¡Solo pregúntame! 🚀": {
+        "efectividad_total": 4.1,
+        "veces_usada": 1,
+        "ultimo_uso": "2025-10-07T13:20:45.862609"
+      }
+    }
+  },
+  "patrones_conversacion": {}
+}

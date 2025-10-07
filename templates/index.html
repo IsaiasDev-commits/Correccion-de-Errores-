@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CyberCode AI - Asistente de Programación Futurista</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    <!-- Highlight.js para syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -31,6 +40,7 @@
             color: white;
             min-height: 100vh;
             overflow-x: hidden;
+            line-height: 1.6;
         }
 
         /* Efectos de partículas futuristas */
@@ -162,12 +172,11 @@
 
         /* Message Bubbles */
         .message {
-            max-width: 80%;
+            max-width: 85%;
             padding: 20px;
             border-radius: 20px;
             position: relative;
             animation: messageSlide 0.3s ease-out;
-            line-height: 1.6;
         }
 
         @keyframes messageSlide {
@@ -191,8 +200,8 @@
 
         .ai-message {
             align-self: flex-start;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(0, 212, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(0, 212, 255, 0.2);
             border-bottom-left-radius: 5px;
             backdrop-filter: blur(10px);
         }
@@ -200,9 +209,9 @@
         .message-header {
             display: flex;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             font-size: 0.9rem;
-            opacity: 0.8;
+            opacity: 0.9;
         }
 
         .ai-icon {
@@ -217,35 +226,92 @@
             font-size: 12px;
         }
 
-        /* Code Blocks */
-        .code-block {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--neon-blue);
-            border-radius: 10px;
-            padding: 15px;
+        /* Mejor formato para contenido de mensajes */
+        .message-content {
+            line-height: 1.7;
+        }
+
+        .message-content p {
+            margin-bottom: 12px;
+        }
+
+        .message-content ul, .message-content ol {
             margin: 10px 0;
-            overflow-x: auto;
-            position: relative;
+            padding-left: 20px;
         }
 
-        .code-block::before {
-            content: '📋';
-            position: absolute;
-            top: 10px;
-            right: 10px;
+        .message-content li {
+            margin-bottom: 5px;
+        }
+
+        .message-content strong {
+            color: var(--neon-blue);
+        }
+
+        .message-content em {
+            opacity: 0.9;
+        }
+
+        /* Code Blocks Mejorados */
+        .code-block {
+            background: #1e1e1e;
+            border: 1px solid var(--neon-blue);
+            border-radius: 12px;
+            margin: 15px 0;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .code-header {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            font-size: 12px;
+            color: var(--neon-blue);
+        }
+
+        .code-language {
+            font-weight: 600;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--neon-blue);
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: var(--neon-blue);
             cursor: pointer;
-            opacity: 0.6;
-            transition: opacity 0.3s;
+            font-size: 11px;
+            transition: all 0.3s ease;
         }
 
-        .code-block:hover::before {
-            opacity: 1;
+        .copy-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
         }
 
-        pre {
+        .code-content {
+            padding: 15px;
+            overflow-x: auto;
+        }
+
+        .code-content pre {
             margin: 0;
             font-family: 'Roboto Mono', monospace;
             font-size: 14px;
+            line-height: 1.4;
+        }
+
+        /* Inline code */
+        .message-content code:not(.hljs) {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9em;
             color: var(--matrix-blue);
         }
 
@@ -402,9 +468,10 @@
         /* Responsive */
         @media (max-width: 768px) {
             .cyber-title { font-size: 2rem; }
-            .message { max-width: 90%; }
+            .message { max-width: 95%; }
             .input-group { flex-direction: column; }
             .send-btn { width: 100%; margin-top: 10px; }
+            .quick-actions { justify-content: center; }
         }
 
         /* Scrollbar personalizado */
@@ -448,13 +515,17 @@
                         </div>
                         <strong>CyberCode AI</strong>
                     </div>
-                    ¡Hola! Soy tu asistente de programación futurista 🚀<br><br>
-                    Puedo ayudarte con:
-                    • Análisis de código y detección de errores<br>
-                    • Explicaciones de conceptos de programación<br>
-                    • Optimizaciones y mejores prácticas<br>
-                    • Ejemplos prácticos y soluciones<br><br>
-                    ¿En qué puedo asistirte hoy?
+                    <div class="message-content">
+                        <p>¡Hola! Soy tu asistente de programación futurista 🚀</p>
+                        <p><strong>Puedo ayudarte con:</strong></p>
+                        <ul>
+                            <li>Análisis de código y detección de errores</li>
+                            <li>Explicaciones de conceptos de programación</li>
+                            <li>Optimizaciones y mejores prácticas</li>
+                            <li>Ejemplos prácticos y soluciones</li>
+                        </ul>
+                        <p>¿En qué puedo asistirte hoy?</p>
+                    </div>
                 </div>
             </div>
 
@@ -524,6 +595,7 @@
             init() {
                 this.setupEventListeners();
                 this.autoResizeTextarea();
+                hljs.highlightAll();
             }
 
             setupEventListeners() {
@@ -531,11 +603,6 @@
                     if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         this.sendMessage();
-                    }
-                    
-                    if (e.key === 'Enter' && e.shiftKey) {
-                        // Permitir nueva línea
-                        return;
                     }
                 });
 
@@ -553,13 +620,11 @@
                 const message = this.messageInput.value.trim();
                 if (!message) return;
 
-                // Agregar mensaje del usuario
                 this.addMessage('user', message);
                 this.messageInput.value = '';
                 this.autoResizeTextarea();
                 this.sendBtn.disabled = true;
 
-                // Mostrar typing indicator
                 this.showTyping();
 
                 try {
@@ -599,34 +664,74 @@
                             </div>
                             <strong>CyberCode AI</strong>
                         </div>
-                        ${this.formatMessage(content)}
+                        <div class="message-content">
+                            ${this.formatMessage(content)}
+                        </div>
                     `;
                 } else {
                     messageDiv.innerHTML = `
                         <div class="message-header">
                             <strong>Tú</strong>
                         </div>
-                        <div>${this.escapeHtml(content)}</div>
+                        <div class="message-content">
+                            <p>${this.escapeHtml(content)}</p>
+                        </div>
                     `;
                 }
 
                 this.messagesContainer.appendChild(messageDiv);
+                
+                // Aplicar syntax highlighting a los bloques de código
+                setTimeout(() => {
+                    messageDiv.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                }, 100);
+
                 this.scrollToBottom();
             }
 
             formatMessage(content) {
-                // Formatear código entre ```
                 let formatted = this.escapeHtml(content);
                 
-                // Reemplazar bloques de código
+                // Procesar bloques de código con lenguaje
                 formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-                    return `<div class="code-block"><pre>${this.escapeHtml(code.trim())}</pre></div>`;
+                    const language = lang || 'text';
+                    return `
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-language">${language.toUpperCase()}</span>
+                                <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+                            </div>
+                            <div class="code-content">
+                                <pre><code class="language-${language}">${this.escapeHtml(code.trim())}</code></pre>
+                            </div>
+                        </div>
+                    `;
                 });
 
-                // Reemplazar código inline ``
+                // Procesar código inline
                 formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-                // Reemplazar saltos de línea
+                // Procesar texto en negrita
+                formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+                // Procesar texto en cursiva
+                formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+                // Procesar listas
+                formatted = formatted.replace(/^- (.*?)(?=\n|$)/gm, '<li>$1</li>');
+                formatted = formatted.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+                // Procesar saltos de línea y párrafos
+                formatted = formatted.split('\n\n').map(paragraph => {
+                    if (paragraph.trim().startsWith('<') || paragraph.includes('<ul>') || paragraph.includes('<div class="code-block">')) {
+                        return paragraph;
+                    }
+                    return `<p>${paragraph}</p>`;
+                }).join('');
+
+                // Reemplazar saltos de línea simples dentro de párrafos
                 formatted = formatted.replace(/\n/g, '<br>');
 
                 return formatted;
@@ -664,8 +769,10 @@
                                 </div>
                                 <strong>CyberCode AI</strong>
                             </div>
-                            ¡Conversación reiniciada! 🆕<br><br>
-                            ¿En qué puedo ayudarte ahora?
+                            <div class="message-content">
+                                <p>¡Conversación reiniciada! 🆕</p>
+                                <p>¿En qué puedo ayudarte ahora?</p>
+                            </div>
                         </div>
                     `;
                 } catch (error) {
@@ -689,6 +796,18 @@
             chat.messageInput.value = prompt;
             chat.messageInput.focus();
             chat.autoResizeTextarea();
+        }
+
+        function copyCode(button) {
+            const codeBlock = button.closest('.code-block');
+            const code = codeBlock.querySelector('code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = '✅ Copiado!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
         }
 
         // Inicializar cuando se carga la página
